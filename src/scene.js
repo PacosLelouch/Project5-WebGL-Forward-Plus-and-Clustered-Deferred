@@ -1,4 +1,5 @@
 const MinimalGLTFLoader = require('../lib/minimal-gltf-loader');
+import { Color } from 'three';
 import { gl } from './init';
 
 // TODO: Edit if you want to change the light initial positions 
@@ -8,7 +9,7 @@ export const LIGHT_RADIUS = 5.0;
 export const LIGHT_DT = -0.03;
 
 // TODO: This controls the number of lights
-export const NUM_LIGHTS = 100;
+export const NUM_LIGHTS = 200;//100;
 
 class Scene {
   constructor() {
@@ -30,6 +31,9 @@ class Scene {
         radius: LIGHT_RADIUS,
       });
     }
+
+    this.specularColor = new Color(128, 128, 128);
+    this.shininess = 0;
   }
 
   loadGLTF(url) {
@@ -156,6 +160,7 @@ class Scene {
   }
 
   update() {
+    return;//TEST
     for (let i = 0; i < NUM_LIGHTS; i++) {
       // OPTIONAL TODO: Edit if you want to change how lights move
       this.lights[i].position[1] += LIGHT_DT;

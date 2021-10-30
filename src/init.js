@@ -1,6 +1,8 @@
 // TODO: Change this to enable / disable debug mode
 export const DEBUG = true && process.env.NODE_ENV === 'development';
 
+console.log("DEBUG = ", DEBUG);
+
 import DAT from 'dat.gui';
 import WebGLDebug from 'webgl-debug';
 import Stats from 'stats-js';

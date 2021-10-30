@@ -4,14 +4,28 @@ import ForwardPlusRenderer from './renderers/forwardPlus';
 import ClusteredDeferredRenderer from './renderers/clusteredDeferred';
 import Scene from './scene';
 import Wireframe from './wireframe';
+import BoxBlur from './renderers/boxBlur';
 
 const FORWARD = 'Forward';
 const FORWARD_PLUS = 'Forward+';
 const CLUSTERED = 'Clustered Deferred';
+const CLUSTERED_PACK_1 = 'Cl Def Pack 1';
+const CLUSTERED_PACK_2 = 'Cl Def Pack 2';
+
+var blur = new BoxBlur();
 
 const params = {
   renderer: FORWARD_PLUS,
   _renderer: null,
+
+  renderWithPostProcess: function renderWithPostProcess(camera, scene) {
+    blur.tryResize();
+    this._renderer.render(camera, scene);
+    //console.log("blur radius render", blur.radius, blur.isEnabled()); //TEST
+    if(blur.isEnabled()) {
+      blur.render();
+    }
+  }
 };
 
 setRenderer(params.renderer);
@@ -19,21 +33,30 @@ setRenderer(params.renderer);
 function setRenderer(renderer) {
   switch(renderer) {
     case FORWARD:
-      params._renderer = new ForwardRenderer();
+      params._renderer = new ForwardRenderer(blur);
       break;
     case FORWARD_PLUS:
-      params._renderer = new ForwardPlusRenderer(15, 15, 15);
+      params._renderer = new ForwardPlusRenderer(15, 15, 15, blur);//new ForwardPlusRenderer(15, 15, 15);
       break;
     case CLUSTERED:
-      params._renderer = new ClusteredDeferredRenderer(15, 15, 15);
+      params._renderer = new ClusteredDeferredRenderer(15, 15, 15, 0, blur);
+      break;
+    case CLUSTERED_PACK_1:
+      params._renderer = new ClusteredDeferredRenderer(15, 15, 15, 1, blur);
+      break;
+    case CLUSTERED_PACK_2:
+      params._renderer = new ClusteredDeferredRenderer(15, 15, 15, 2, blur);
       break;
   }
 }
 
-gui.add(params, 'renderer', [FORWARD, FORWARD_PLUS, CLUSTERED]).onChange(setRenderer);
-
 const scene = new Scene();
 scene.loadGLTF('models/sponza/sponza.gltf');
+
+gui.add(params, 'renderer', [FORWARD, FORWARD_PLUS, CLUSTERED, CLUSTERED_PACK_1, CLUSTERED_PACK_2]).onChange(setRenderer);
+gui.addColor(scene, 'specularColor');
+gui.add(scene, 'shininess', 0, 256, 1);
+gui.add(blur, 'radius', 0, 9, 1);
 
 // LOOK: The Wireframe class is for debugging.
 // It lets you draw arbitrary lines in the scene.
@@ -53,15 +76,18 @@ gl.enable(gl.DEPTH_TEST);
 
 function render() {
   scene.update();  
-  params._renderer.render(camera, scene);
+  params.renderWithPostProcess(camera, scene);
+  //params._renderer.render(camera, scene);
 
   // LOOK: Render wireframe "in front" of everything else.
   // If you would like the wireframe to render behind and in front
   // of objects based on relative depths in the scene, comment out /
   //the gl.disable(gl.DEPTH_TEST) and gl.enable(gl.DEPTH_TEST) lines.
-  gl.disable(gl.DEPTH_TEST);
-  wireframe.render(camera);
-  gl.enable(gl.DEPTH_TEST);
+  //gl.disable(gl.DEPTH_TEST);
+  //wireframe.render(camera);
+  //gl.enable(gl.DEPTH_TEST);
+
+  //console.log("blur radius", blur.radius); //TEST
 }
 
 makeRenderLoop(render)();
