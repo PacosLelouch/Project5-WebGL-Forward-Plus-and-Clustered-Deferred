@@ -90,6 +90,9 @@ export default function(params) {
     vec3 normap = texture2D(u_normap, v_uv).xyz;
     vec3 normal = normalize(applyNormalMap(v_normal, normap));
 
+    vec3 viewPosition = (u_viewMatrix * vec4(v_position, 1.)).xyz;
+    vec3 viewNormal = (u_viewMatrix * vec4(normal, 0.)).xyz;
+
     vec3 fragColor = vec3(0.0);
 
     for (int i = 0; i < ${params.numLights}; ++i) {
@@ -102,10 +105,13 @@ export default function(params) {
 
       fragColor += albedo * lambertTerm * light.color * vec3(lightIntensity);
 
+      vec3 viewLightPosition = (u_viewMatrix * vec4(light.position, 1.)).xyz;
+      vec3 viewL = (viewLightPosition - viewPosition) / lightDistance;
+
       if(u_shininess > 0.) {
-        vec3 V = normalize(-u_viewMatrix[3].xyz - v_position);
-        vec3 H = normalize(V + L);
-        float specularTerm = pow(max(dot(H, normal), 0.0), u_shininess);
+        vec3 viewV = normalize(-viewPosition);
+        vec3 viewH = normalize(viewV + viewL);
+        float specularTerm = pow(max(dot(viewH, viewNormal), 0.0), u_shininess);
         fragColor += u_specularColor * specularTerm * light.color * vec3(lightIntensity);
       }
     }

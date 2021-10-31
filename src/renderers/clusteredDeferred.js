@@ -13,7 +13,7 @@ import BaseRenderer from './base';
 //export const NUM_GBUFFERS = PACK_GBUFFER ? 2 : 3;//4;
 
 export default class ClusteredDeferredRenderer extends BaseRenderer {
-  constructor(xSlices, ySlices, zSlices, packGBuffer = 0, blur = null) {
+  constructor(xSlices, ySlices, zSlices, packGBuffer = 0) {
     super(xSlices, ySlices, zSlices);
     
     this.PACK_GBUFFER = packGBuffer;
@@ -43,8 +43,6 @@ export default class ClusteredDeferredRenderer extends BaseRenderer {
     this._projectionMatrix = mat4.create();
     this._viewMatrix = mat4.create();
     this._viewProjectionMatrix = mat4.create();
-
-    this._blur = blur;
   }
 
   setupDrawBuffers(width, height) {
@@ -109,7 +107,7 @@ export default class ClusteredDeferredRenderer extends BaseRenderer {
     gl.bindTexture(gl.TEXTURE_2D, null);
   }
 
-  render(camera, scene) {
+  render(camera, scene, renderTarget = null) {
     if (canvas.width != this._width || canvas.height != this._height) {
       this.resize(canvas.width, canvas.height);
     }
@@ -158,9 +156,9 @@ export default class ClusteredDeferredRenderer extends BaseRenderer {
     this.updateClusters(camera, this._viewMatrix, scene);
 
     // Bind the default null framebuffer which is the screen
-    gl.bindFramebuffer(gl.FRAMEBUFFER, (this._blur != null && this._blur.isEnabled()) ? this._blur._fbo : null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, renderTarget);
     // console.log("bind fbo0:", this._fbo); //TEST
-    // console.log("bind fbo1:", (this._blur != null && this._blur.isEnabled()) ? this._blur._fbo : null); //TEST
+    // console.log("bind fbo1:", renderTarget); //TEST
 
     // Clear the frame
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -189,7 +187,7 @@ export default class ClusteredDeferredRenderer extends BaseRenderer {
     gl.uniform1f(this._progShade.u_near, camera.near);
     gl.uniform1f(this._progShade.u_far, camera.far);
 
-    gl.uniform3f(this._progShade.u_specularColor, scene.specularColor.r, scene.specularColor.g, scene.specularColor.b);
+    gl.uniform3fv(this._progShade.u_specularColor, scene.getSpecularColor());
     gl.uniform1f(this._progShade.u_shininess, scene.shininess);
     gl.uniform2f(this._progShade.u_resolution, this._width, this._height);
 

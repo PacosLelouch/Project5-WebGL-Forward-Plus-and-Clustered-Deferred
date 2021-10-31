@@ -1,5 +1,7 @@
 // TODO: Change this to enable / disable debug mode
-export const DEBUG = true && process.env.NODE_ENV === 'development';
+//export const DEBUG = true && process.env.NODE_ENV === 'development';
+export const DEBUG = false;
+export const DEV_WITH_SPECTOR = false;//true;
 
 console.log("DEBUG = ", DEBUG);
 
@@ -82,20 +84,34 @@ function setSize(width, height) {
 setSize(canvas.clientWidth, canvas.clientHeight);
 window.addEventListener('resize', () => setSize(canvas.clientWidth, canvas.clientHeight));
 
-if (DEBUG) {
+if (DEBUG || DEV_WITH_SPECTOR) {
   const spector = new Spector();
   spector.displayUI();
+}
+
+var frameCount = 0;
+const START_FRAME = 5;
+
+export function resetFrameCount() {
+  frameCount = 0;
 }
 
 // Creates a render loop that is wrapped with camera update and stats logging
 export function makeRenderLoop(render) {
   return function tick() {
+    if(frameCount > START_FRAME) {
+      stats.end();
+    }
+    if(frameCount >= START_FRAME) {
+      stats.begin();
+    }
     cameraControls.update();
-    stats.begin();
+    //stats.begin();
     render();
-    stats.end();
+    //stats.end();
     if (!ABORTED) {
       requestAnimationFrame(tick)
+      ++frameCount;
     }
   }
 }

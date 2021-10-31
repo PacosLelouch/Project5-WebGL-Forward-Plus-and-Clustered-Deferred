@@ -9,7 +9,7 @@ import BaseRenderer from './base';
 //import { BaseRenderer } from './base';
 
 export default class ForwardPlusRenderer extends BaseRenderer {
-  constructor(xSlices, ySlices, zSlices, blur = null) {
+  constructor(xSlices, ySlices, zSlices) {
     super(xSlices, ySlices, zSlices);
 
     // Create a texture to store light data
@@ -27,10 +27,9 @@ export default class ForwardPlusRenderer extends BaseRenderer {
     this._projectionMatrix = mat4.create();
     this._viewMatrix = mat4.create();
     this._viewProjectionMatrix = mat4.create();
-    this._blur = blur;
   }
 
-  render(camera, scene) {
+  render(camera, scene, renderTarget = null) {
     // Update the camera matrices
     camera.updateMatrixWorld();
     mat4.invert(this._viewMatrix, camera.matrixWorld.elements);
@@ -55,7 +54,7 @@ export default class ForwardPlusRenderer extends BaseRenderer {
     this._lightTexture.update();
 
     // Bind the default null framebuffer which is the screen
-    gl.bindFramebuffer(gl.FRAMEBUFFER, (this._blur != null && this._blur.isEnabled()) ? this._blur._fbo : null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, renderTarget);
 
     // Render to the whole screen
     gl.viewport(0, 0, canvas.width, canvas.height);
@@ -85,7 +84,7 @@ export default class ForwardPlusRenderer extends BaseRenderer {
     gl.uniform1f(this._shaderProgram.u_near, camera.near);
     gl.uniform1f(this._shaderProgram.u_far, camera.far);
     
-    gl.uniform3f(this._shaderProgram.u_specularColor, scene.specularColor.r, scene.specularColor.g, scene.specularColor.b);
+    gl.uniform3fv(this._shaderProgram.u_specularColor, scene.getSpecularColor());
     gl.uniform1f(this._shaderProgram.u_shininess, scene.shininess);
 
     // Draw the scene. This function takes the shader program so that the model's textures can be bound to the right inputs

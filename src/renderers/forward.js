@@ -7,7 +7,7 @@ import fsSource from '../shaders/forward.frag.glsl.js';
 import TextureBuffer from './textureBuffer';
 
 export default class ForwardRenderer {
-  constructor(blur = null) {
+  constructor() {
     // Create a texture to store light data
     this._lightTexture = new TextureBuffer(NUM_LIGHTS, 8);
 
@@ -22,10 +22,9 @@ export default class ForwardRenderer {
     this._projectionMatrix = mat4.create();
     this._viewMatrix = mat4.create();
     this._viewProjectionMatrix = mat4.create();
-    this._blur = blur;
   }
 
-  render(camera, scene) {
+  render(camera, scene, renderTarget = null) {
     // Update the camera matrices
     camera.updateMatrixWorld();
     mat4.invert(this._viewMatrix, camera.matrixWorld.elements);
@@ -47,7 +46,7 @@ export default class ForwardRenderer {
     this._lightTexture.update();
 
     // Bind the default null framebuffer which is the screen
-    gl.bindFramebuffer(gl.FRAMEBUFFER, (this._blur != null && this._blur.isEnabled()) ? this._blur._fbo : null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, renderTarget);
 
     // Render to the whole screen
     gl.viewport(0, 0, canvas.width, canvas.height);
@@ -67,7 +66,7 @@ export default class ForwardRenderer {
     gl.bindTexture(gl.TEXTURE_2D, this._lightTexture.glTexture);
     gl.uniform1i(this._shaderProgram.u_lightbuffer, 2);
 
-    gl.uniform3f(this._shaderProgram.u_specularColor, scene.specularColor.r, scene.specularColor.g, scene.specularColor.b);
+    gl.uniform3fv(this._shaderProgram.u_specularColor, scene.getSpecularColor());
     gl.uniform1f(this._shaderProgram.u_shininess, scene.shininess);
 
     // Draw the scene. This function takes the shader program so that the model's textures can be bound to the right inputs

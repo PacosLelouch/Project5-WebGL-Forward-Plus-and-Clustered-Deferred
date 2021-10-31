@@ -129,7 +129,7 @@ export default function(params) {
     vec4 worldPosition4 = gb2;
     
     vec3 worldPosition = worldPosition4.xyz;
-    vec3 normal = gb1.xyz;
+    vec3 normal = normalize(gb1.xyz);
     vec3 albedo = gb0.xyz;
 
     vec3 viewPosition = (u_viewMatrix * worldPosition4).xyz;
@@ -142,10 +142,8 @@ export default function(params) {
     vec3 screenPosition = vec3(gl_FragCoord.xy / u_resolution, gb0.w);
     vec3 viewPosition = unprojectScreenSpaceToViewSpace(screenPosition, u_projectionMatrix);
 
-    vec3 normal = gb1.xyz;
+    vec3 normal = normalize(gb1.xyz);
     vec3 albedo = gb0.xyz;
-
-    vec3 viewNormal = (u_viewMatrix * vec4(normal, 0.)).xyz;
   #else // PACK_GBUFFER
     vec4 gb0 = texture2D(u_gbuffers[0], v_uv);
 
@@ -170,11 +168,12 @@ export default function(params) {
     int bi = gb - gi * 256;
     float b = float(bi) / 255.;
     
-    vec3 normal = vec3(gb0.y, gb0.z, (gb0.x >= 0. ? 1. : -1.) * sqrt(max(0., 1. - gb0.y * gb0.y - gb0.z * gb0.z)));
+    //vec3 normal = vec3(gb0.y, gb0.z, (gb0.x >= 0. ? 1. : -1.) * sqrt(max(0., 1. - gb0.y * gb0.y - gb0.z * gb0.z)));
+    vec3 normal = vec3(gb0.y, gb0.z, sign(gb0.x) * sqrt(max(0., 1. - gb0.y * gb0.y - gb0.z * gb0.z)));
     vec3 albedo = vec3(r, g, b);
+  #endif // PACK_GBUFFER
 
     vec3 viewNormal = (u_viewMatrix * vec4(normal, 0.)).xyz;
-  #endif // PACK_GBUFFER
 
     // gl_FragColor = vec4(gl_FragCoord.xy / u_resolution, 0., 1.);
     // return;
@@ -226,31 +225,32 @@ export default function(params) {
       int i = int(iF + 0.5);
   #endif // CLUSTERED_DEFERRED_DEBUG
       Light light = UnpackLight(i);
-  #if PACK_GBUFFER == 0
-      float lightDistance = distance(light.position, worldPosition);
-      vec3 L = (light.position - worldPosition) / lightDistance;
-      float lambertTerm = max(dot(L, normal), 0.0);
-  #else // PACK_GBUFFER
       vec3 viewLightPosition = (u_viewMatrix * vec4(light.position, 1.)).xyz;
+  // #if PACK_GBUFFER == 0
+  //     float lightDistance = distance(light.position, worldPosition);
+  //     vec3 L = (light.position - worldPosition) / lightDistance;
+  //     float lambertTerm = max(dot(L, normal), 0.0);
+  // #else // PACK_GBUFFER
       float lightDistance = distance(viewLightPosition, viewPosition);
       vec3 viewL = (viewLightPosition - viewPosition) / lightDistance;
       float lambertTerm = max(dot(viewL, viewNormal), 0.0);
-  #endif // PACK_GBUFFER
+  // #endif // PACK_GBUFFER
 
       float lightIntensity = cubicGaussian(2.0 * lightDistance / light.radius);
 
       fragColor += albedo * lambertTerm * light.color * vec3(lightIntensity);
 
       if(u_shininess > 0.) {
-  #if PACK_GBUFFER == 0
-        vec3 V = normalize(-u_viewMatrix[3].xyz - worldPosition);
-        vec3 H = normalize(V + L);
-        float specularTerm = pow(max(dot(H, normal), 0.0), u_shininess);
-  #else // PACK_GBUFFER
+  // #if PACK_GBUFFER == 0
+  //       vec3 V = normalize(-vec3(u_viewMatrix[3][0], u_viewMatrix[3][1], u_viewMatrix[3][2]) - worldPosition);
+  //       //vec3 V = normalize(-u_viewMatrix[3].xyz - worldPosition);
+  //       vec3 H = normalize(V + L);
+  //       float specularTerm = pow(max(dot(H, normal), 0.0), u_shininess);
+  // #else // PACK_GBUFFER
         vec3 viewV = normalize(-viewPosition);
         vec3 viewH = normalize(viewV + viewL);
         float specularTerm = pow(max(dot(viewH, viewNormal), 0.0), u_shininess);
-  #endif //  PACK_GBUFFER
+  // #endif //  PACK_GBUFFER
         fragColor += u_specularColor * specularTerm * light.color * vec3(lightIntensity);
       }
     }
